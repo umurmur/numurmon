@@ -16,4 +16,4 @@ The main view
 
 A user speaking
 -
-![Main view (speaking)](../screenshots/numurmon.jpg?raw=true "The main view of nuMurmon with one user currently speaking")
+![Main view (speaking)](../screenshots/numurmon_talking.jpg?raw=true "The main view of nuMurmon with one user currently speaking")
