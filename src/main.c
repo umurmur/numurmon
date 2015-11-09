@@ -203,15 +203,15 @@ void run_shm(void)
 						printw( "@%s:%i", shmptr->client[cc].ipaddress,
 						    				 	shmptr->client[cc].udp_port );        		
         		standend();
+        		printw( "/%s", shmptr->client[cc].channel );
        	}
 		  	else
 		  		{
 		    			mvprintw( cc + 5, 1, "%s", shmptr->client[cc].username );
 							printw( "@%s:%i", shmptr->client[cc].ipaddress,
-						    				 	shmptr->client[cc].udp_port );		
+						    				 	shmptr->client[cc].udp_port );
+							printw( "/%s", shmptr->client[cc].channel );													 		
 					}
-       
-			 printw( "/%s", shmptr->client[cc].channel ); 
 					
 		
 		mvprintw( cc + 5, 45, "%s", format_time( shmptr->client[cc].online_secs ) );
