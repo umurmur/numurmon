@@ -22,10 +22,6 @@ int shm_fd;
 shm_t *shmptr = NULL;
 char shm_file_name[128];
 
-char tcolor[8] = "\033[31m", ncolor[8] = "\033[37m";
-
-char *tc_on, *tc_off;
-
 int waitTime = 0, opt;
 uint8_t last, shm_statem = TRY_ATTACH_SHM;
 
@@ -33,7 +29,7 @@ void run_shm(void);
 char * format_time( uint32_t secs );
 
 static void finish(int sig);
-void handle_winch(int sig);
+static void handle_winch(int sig);
                                             
 int main(int argc, char **argv)
 {
@@ -58,20 +54,19 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	signal(SIGINT, finish);      		/* arrange interrupts to terminate */
+	signal(SIGINT, finish);      		
   signal(SIGWINCH, handle_winch);
-  initscr();      								/* initialize the curses library */
+  
+	initscr();      								/* initialize the curses library */
+  //nonl();
+  keypad(stdscr, TRUE);
+  noecho();
+  cbreak();
+  curs_set(0);
   
     if (has_colors())
     {
         start_color();
-
-        /*
-         * Simple color assignment, often all we need.  Color pair 0 cannot
-         * be redefined.  This example uses the same value for the color
-         * pair as for the foreground color, though of course that is not
-         * necessary:
-         */
         init_pair(1, COLOR_RED,    COLOR_BLACK);
         init_pair(2, COLOR_GREEN,  COLOR_BLACK);
         init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -83,9 +78,7 @@ int main(int argc, char **argv)
   
   //cbreak();
   
-  nonl();
-  //intrflush(stdscr, FALSE);
- // keypad(stdscr, TRUE);
+ 
   
   clear();
   refresh();
@@ -111,7 +104,7 @@ int main(int argc, char **argv)
 				refresh();
 				break;
 			case WAIT_ATTACH_SHM:
-				mvprintw( 0,0, "Waiting for umurmurd to be run"); refresh();//fflush(stdout);
+				mvprintw( 0,0, "Waiting for umurmurd to be run"); refresh();
 				while( ( shm_fd = shm_open( shm_file_name, O_RDONLY, 0666 ) ) == -1 )
 					//sleep( 1 );
 				shm_statem = MAT_SHM;
@@ -154,29 +147,30 @@ void run_shm(void)
 
 	int cc;
 	static int change_in_clients;
-
-	//mvprintw( 1, 2, "%s  Clients(CONECTED/MAX)  %i/%i", shm_file_name, shmptr->clientcount, shmptr->server_max_clients );
   
   mvprintw( 0, 3, "Server Info");
   mvchgat(0, 0, -1, A_REVERSE, 5, NULL);
   
   
   mvprintw( 1, 0, " PID");
-  mvprintw( 1, 36, "Clients(CONECTED/MAX)" );
+  mvprintw( 1, 15, "SHM_FD");
+  mvprintw( 1, 36, "CLIENTS(CONECTED/MAX)" );
 	//mvprintw( 1, 47, "IDLE" );
 
   mvchgat(1, 0, -1, A_REVERSE, 0, NULL);
   
   mvprintw( 2, 1, "%u", shmptr->umurmurd_pid);
+	mvprintw( 2, 15, "%s", shm_file_name );
+	mvprintw( 2, 50, "%2i/%2i", shmptr->clientcount, shmptr->server_max_clients );
 
   mvprintw( 3, 3, "Client Info");
   mvchgat( 3, 0, -1, A_REVERSE, 5, NULL);
 	
-  mvprintw( 4, 0, " USER@ADDRESS:PORT");
-  mvprintw( 4, 36, "ONLINE" );
-	mvprintw( 4, 47, "IDLE" );
-	//mvprintw( 3, 47, "IDLE" );
-	mvprintw( 4, 55, "M D S" );
+  mvprintw( 4, 0, " USER@ADDRESS:PORT/CHANNEL");
+  mvprintw( 4, 46, "ONLINE" );
+	mvprintw( 4, 57, "IDLE" );
+	
+	mvprintw( 4, 65, "M D S" );
   mvchgat(4, 0, -1, A_REVERSE, 0, NULL);
   
 
@@ -189,8 +183,7 @@ void run_shm(void)
   if( change_in_clients > shmptr->clientcount )
   {
 	  move( cc + 5, 0);
-		clrtoeol();
-	
+		clrtoeol();	
 	}
 
 		if( !shmptr->client[cc].authenticated )
@@ -217,45 +210,29 @@ void run_shm(void)
 							printw( "@%s:%i", shmptr->client[cc].ipaddress,
 						    				 	shmptr->client[cc].udp_port );		
 					}
-        
+       
+			 printw( "/%s", shmptr->client[cc].channel ); 
 					
 		
-// 		printw( "@%s:%i", shmptr->client[cc].ipaddress,
-// 						    				 	shmptr->client[cc].udp_port );
-						    				 	
-		mvprintw( cc + 5, 35, "%s", format_time( shmptr->client[cc].online_secs ) );
+		mvprintw( cc + 5, 45, "%s", format_time( shmptr->client[cc].online_secs ) );
 		
 		printw( "  %s",	 format_time( shmptr->client[cc].idle_secs ) );
 		
-// 		mvprintw( 3, 3, " %s%s%s@%s:%i in channel: %s\
-// 			\tclient_OS: %s %s\
-// 			\tclient_info: %s\
-// 			\tavailableBandwidth: %i\
-// 			\tOnline(secs): %s Idle(secs): %i\
-// 			\tusingUDP=%i\
-// 			\tdeaf=%i, mute=%i\
-// 			\tself_deaf=%i, self_mute=%i\
-// 			\trecording=%i\
-// 			\tbOpus=%i\
-// 			\tisAdmin=%i\
-// 			\tisSuppressed=%i\
-// 			\tUDP_Avg/Var: %3.2f/%3.2f\
-// 			\tTCP_Avg/Var: %3.2f/%3.2f\
-// 			\tUDP_C/TCP_C: %i/%i",
-// 			"",//tc_on,
-// 			shmptr->client[cc].username,
-// 			"", //tc_off,
-// 			shmptr->client[cc].ipaddress,
-// 			shmptr->client[cc].udp_port,
-// 			shmptr->client[cc].channel,
+
 // 			shmptr->client[cc].os,
 // 			shmptr->client[cc].os_version,
 // 			shmptr->client[cc].release,
 // 			shmptr->client[cc].availableBandwidth,
-// 			//shmptr->client[cc].online_secs,
-// 			format_time( shmptr->client[cc].online_secs ),
-// 			shmptr->client[cc].idle_secs,
-// 
+
+		move( cc + 5, 65);    //addch(ch | A_BOLD | A_UNDERLINE);
+   	addch( shmptr->client[cc].self_mute || shmptr->client[cc].mute ? (shmptr->client[cc].mute ? 'S' : '*') : ' ' );
+
+		move( cc + 5, 67);    //addch(ch | A_BOLD | A_UNDERLINE);
+   	addch( shmptr->client[cc].self_deaf|| shmptr->client[cc].deaf ? (shmptr->client[cc].deaf ? 'S' : '*') : ' ' );   	
+   	
+   	
+   	mvprintw( cc + 5, 69, shmptr->client[cc].isSuppressed ? "*" : " " );
+
 // 			shmptr->client[cc].bUDP,
 // 			shmptr->client[cc].deaf,
 // 			shmptr->client[cc].mute,
@@ -272,13 +249,13 @@ void run_shm(void)
 // 			shmptr->client[cc].TCPPingAvg,
 // 			shmptr->client[cc].TCPPingVar,
 // 			shmptr->client[cc].UDPPackets,
-// 			shmptr->client[cc].TCPPackets ); //fflush(stdout);  // fflush need because of sleep() call
+// 			shmptr->client[cc].TCPPackets );
 			
 	}
 	change_in_clients = shmptr->clientcount;
 	if( !check_serverTick() )
 	{
-		exit(EXIT_FAILURE); //You dont have to exit you could just report the fact that the data is not valid
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -287,14 +264,14 @@ char * format_time( uint32_t secs )
 	static char ftime[9];
 	int  hour, min, sec, sec_left;
 	
-	hour = secs / 3600;
-	sec_left = secs % 3600;
-	min = sec_left / 60;
-	sec = sec_left % 60;
+		hour = secs / 3600;
+		sec_left = secs % 3600;
+		min = sec_left / 60;
+		sec = sec_left % 60;
 	
-	sprintf( ftime, "%02i:%02i:%02i", hour, min, sec );
+		sprintf( ftime, "%02i:%02i:%02i", hour, min, sec );
 	
-return ftime;
+	return ftime;
 }
 
 static void finish(int sig)
@@ -308,7 +285,6 @@ static void finish(int sig)
 
 void handle_winch(int sig)
 {
-	//endwin();
-	clearok( stdscr, TRUE );    //clearok( curscr, TRUE );
+	clearok( stdscr, TRUE );    
 	refresh();
 }
