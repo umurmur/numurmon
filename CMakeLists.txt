@@ -13,9 +13,9 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${UMURMUR_ROOT_PATH}/cmake/Modules")
 
-include(CheckLibraryExists)
-include(CheckFunctionExists)
 include(SelectRTBackend)
+
+SelectRTBackend()
 
 if(UMURMUR_BINARY_DIR)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${UMURMUR_BINARY_DIR})
